@@ -13,4 +13,3 @@ Chwiya dyal Resources w Documentations:
 - [Firebase Documentation](https://firebase.google.com/docs)
 - [Provider package](https://pub.dev/packages/provider)
 
-=======
