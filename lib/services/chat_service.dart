@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import '../models/message_model.dart';
+import '../models/chat_model.dart';
 import '../utils/helpers.dart';
 
 /// Service de gestion du chat
@@ -42,10 +44,10 @@ class ChatService {
       // Mettre à jour les métadonnées du chat
       await _updateChatMetadata(chatId, senderId, receiverId, text);
 
-      print('✅ Message envoyé avec succès');
+      debugPrint('✅ Message envoyé avec succès');
       return null;
     } catch (e) {
-      print('❌ Erreur lors de l\'envoi du message: $e');
+      debugPrint('❌ Erreur lors de l\'envoi du message: $e');
       return 'Erreur lors de l\'envoi du message';
     }
   }
@@ -88,10 +90,10 @@ class ChatService {
       // Mettre à jour les métadonnées du chat
       await _updateChatMetadata(chatId, senderId, receiverId, '📷 Photo');
 
-      print('✅ Image envoyée avec succès');
+      debugPrint('✅ Image envoyée avec succès');
       return null;
     } catch (e) {
-      print('❌ Erreur lors de l\'envoi de l\'image: $e');
+      debugPrint('❌ Erreur lors de l\'envoi de l\'image: $e');
       return 'Erreur lors de l\'envoi de l\'image';
     }
   }
@@ -112,18 +114,18 @@ class ChatService {
       String downloadUrl = await snapshot.ref.getDownloadURL();
       return downloadUrl;
     } catch (e) {
-      print('❌ Erreur lors de l\'upload de l\'image: $e');
+      debugPrint('❌ Erreur lors de l\'upload de l\'image: $e');
       return null;
     }
   }
 
   /// Mettre à jour les métadonnées du chat
   Future<void> _updateChatMetadata(
-      String chatId,
-      String senderId,
-      String receiverId,
-      String lastMessage,
-      ) async {
+    String chatId,
+    String senderId,
+    String receiverId,
+    String lastMessage,
+  ) async {
     await _firestore.collection('chats').doc(chatId).set({
       'participants': [senderId, receiverId],
       'lastMessage': lastMessage,
@@ -143,10 +145,22 @@ class ChatService {
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => MessageModel.fromFirestore(doc))
-          .toList();
-    });
+          return snapshot.docs
+              .map((doc) => MessageModel.fromFirestore(doc))
+              .toList();
+        });
+  }
+
+  /// Récupérer les chats d'un utilisateur
+  Stream<List<ChatModel>> getUserChats(String userId) {
+    return _firestore
+        .collection('chats')
+        .where('participants', arrayContains: userId)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => ChatModel.fromFirestore(doc)).toList(),
+        );
   }
 
   /// Marquer les messages comme lus
@@ -169,9 +183,9 @@ class ChatService {
       }
       await batch.commit();
 
-      print('✅ Messages marqués comme lus');
+      debugPrint('✅ Messages marqués comme lus');
     } catch (e) {
-      print('❌ Erreur lors du marquage des messages: $e');
+      debugPrint('❌ Erreur lors du marquage des messages: $e');
     }
   }
 
@@ -185,10 +199,10 @@ class ChatService {
           .doc(messageId)
           .delete();
 
-      print('✅ Message supprimé');
+      debugPrint('✅ Message supprimé');
       return null;
     } catch (e) {
-      print('❌ Erreur lors de la suppression: $e');
+      debugPrint('❌ Erreur lors de la suppression: $e');
       return 'Erreur lors de la suppression';
     }
   }
