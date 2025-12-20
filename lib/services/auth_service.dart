@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 
@@ -24,10 +25,8 @@ class AuthService {
   }) async {
     try {
       // Créer le compte Firebase Auth
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       // Récupérer l'utilisateur créé
       User? user = userCredential.user;
@@ -49,14 +48,14 @@ class AuthService {
             .doc(user.uid)
             .set(newUser.toFirestore());
 
-        print('✅ Utilisateur créé avec succès: ${user.uid}');
+        debugPrint('✅ Utilisateur créé avec succès: ${user.uid}');
         return null; // Pas d'erreur
       }
 
       return 'Erreur lors de la création du compte';
     } on FirebaseAuthException catch (e) {
       // Gestion des erreurs Firebase
-      print('❌ Erreur Firebase Auth: ${e.code}');
+      debugPrint('❌ Erreur Firebase Auth: ${e.code}');
 
       switch (e.code) {
         case 'email-already-in-use':
@@ -69,7 +68,7 @@ class AuthService {
           return 'Erreur: ${e.message}';
       }
     } catch (e) {
-      print('❌ Erreur inattendue: $e');
+      debugPrint('❌ Erreur inattendue: $e');
       return 'Erreur inattendue lors de l\'inscription';
     }
   }
@@ -95,13 +94,13 @@ class AuthService {
           'lastSeen': FieldValue.serverTimestamp(),
         });
 
-        print('✅ Connexion réussie: ${user.uid}');
+        debugPrint('✅ Connexion réussie: ${user.uid}');
         return null; // Pas d'erreur
       }
 
       return 'Erreur lors de la connexion';
     } on FirebaseAuthException catch (e) {
-      print('❌ Erreur Firebase Auth: ${e.code}');
+      debugPrint('❌ Erreur Firebase Auth: ${e.code}');
 
       switch (e.code) {
         case 'user-not-found':
@@ -116,7 +115,7 @@ class AuthService {
           return 'Erreur: ${e.message}';
       }
     } catch (e) {
-      print('❌ Erreur inattendue: $e');
+      debugPrint('❌ Erreur inattendue: $e');
       return 'Erreur inattendue lors de la connexion';
     }
   }
@@ -136,23 +135,26 @@ class AuthService {
 
       // Déconnexion Firebase Auth
       await _auth.signOut();
-      print('✅ Déconnexion réussie');
+      debugPrint('✅ Déconnexion réussie');
     } catch (e) {
-      print('❌ Erreur lors de la déconnexion: $e');
+      debugPrint('❌ Erreur lors de la déconnexion: $e');
     }
   }
 
   /// Récupérer les informations d'un utilisateur depuis Firestore
   Future<UserModel?> getUserData(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      DocumentSnapshot doc = await _firestore
+          .collection('users')
+          .doc(uid)
+          .get();
 
       if (doc.exists) {
         return UserModel.fromFirestore(doc);
       }
       return null;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des données: $e');
+      debugPrint('❌ Erreur lors de la récupération des données: $e');
       return null;
     }
   }
@@ -169,9 +171,7 @@ class AuthService {
         return 'Utilisateur non connecté';
       }
 
-      Map<String, dynamic> updates = {
-        'displayName': displayName,
-      };
+      Map<String, dynamic> updates = {'displayName': displayName};
 
       if (photoUrl != null) {
         updates['photoUrl'] = photoUrl;
@@ -179,10 +179,10 @@ class AuthService {
 
       await _firestore.collection('users').doc(user.uid).update(updates);
 
-      print('✅ Profil mis à jour');
+      debugPrint('✅ Profil mis à jour');
       return null;
     } catch (e) {
-      print('❌ Erreur lors de la mise à jour du profil: $e');
+      debugPrint('❌ Erreur lors de la mise à jour du profil: $e');
       return 'Erreur lors de la mise à jour du profil';
     }
   }

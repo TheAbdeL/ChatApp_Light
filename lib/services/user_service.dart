@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 
 /// Service de gestion des utilisateurs
@@ -12,10 +13,10 @@ class UserService {
         .where(FieldPath.documentId, isNotEqualTo: currentUserId)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => UserModel.fromFirestore(doc))
-          .toList();
-    });
+          return snapshot.docs
+              .map((doc) => UserModel.fromFirestore(doc))
+              .toList();
+        });
   }
 
   /// Rechercher des utilisateurs par nom
@@ -25,21 +26,21 @@ class UserService {
         .where(FieldPath.documentId, isNotEqualTo: currentUserId)
         .snapshots()
         .map((snapshot) {
-      List<UserModel> users = snapshot.docs
-          .map((doc) => UserModel.fromFirestore(doc))
-          .toList();
+          List<UserModel> users = snapshot.docs
+              .map((doc) => UserModel.fromFirestore(doc))
+              .toList();
 
-      // Filtrer par nom (case insensitive)
-      if (query.isNotEmpty) {
-        users = users.where((user) {
-          return user.displayName
-              .toLowerCase()
-              .contains(query.toLowerCase());
-        }).toList();
-      }
+          // Filtrer par nom (case insensitive)
+          if (query.isNotEmpty) {
+            users = users.where((user) {
+              return user.displayName.toLowerCase().contains(
+                query.toLowerCase(),
+              );
+            }).toList();
+          }
 
-      return users;
-    });
+          return users;
+        });
   }
 
   /// Récupérer un utilisateur par son ID
@@ -55,7 +56,7 @@ class UserService {
       }
       return null;
     } catch (e) {
-      print('❌ Erreur lors de la récupération de l\'utilisateur: $e');
+      debugPrint('❌ Erreur lors de la récupération de l\'utilisateur: $e');
       return null;
     }
   }
@@ -68,7 +69,7 @@ class UserService {
         'lastSeen': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      print('❌ Erreur lors de la mise à jour du statut: $e');
+      debugPrint('❌ Erreur lors de la mise à jour du statut: $e');
     }
   }
 }

@@ -5,39 +5,51 @@ import '../views/register_page.dart';
 import '../views/users_page.dart';
 import '../views/chat_page.dart';
 
-class AppRoutes {
+/// Gestion des routes de l'application
+class Routes {
   static const String splash = '/';
   static const String login = '/login';
   static const String register = '/register';
   static const String users = '/users';
   static const String chat = '/chat';
 
-  static Map<String, WidgetBuilder> getRoutes() {
-    return {
-      splash: (context) => const SplashScreen(),
-      login: (context) => const LoginPage(),
-      register: (context) => const RegisterPage(),
-      users: (context) => const UsersPage(),
-      // chat nécessite des arguments, donc pas dans les routes nommées
-      // On utilisera Navigator.push() avec des arguments
-    };
+  static Route<dynamic> generateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case splash:
+        return MaterialPageRoute(builder: (_) => const SplashScreen());
+      
+      case login:
+        return MaterialPageRoute(builder: (_) => const LoginPage());
+      
+      case register:
+        return MaterialPageRoute(builder: (_) => const RegisterPage());
+      
+      case users:
+        return MaterialPageRoute(builder: (_) => const UsersPage());
+      
+      case chat:
+        final args = settings.arguments as Map<String, dynamic>?;
+        if (args != null) {
+          return MaterialPageRoute(
+            builder: (_) => ChatPage(
+              userId: args['userId'] as String,
+              userName: args['userName'] as String,
+              userAvatar: args['userAvatar'] as String?,
+            ),
+          );
+        }
+        return _errorRoute();
+      
+      default:
+        return _errorRoute();
+    }
   }
 
-  // Méthode helper pour naviguer vers ChatPage avec arguments
-  static void navigateToChat(
-      BuildContext context, {
-        required String userId,
-        required String userName,
-        String? userAvatar,
-      }) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChatPage(
-          userId: userId,
-          userName: userName,
-          userAvatar: userAvatar,
-        ),
+  static Route<dynamic> _errorRoute() {
+    return MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: const Text('Erreur')),
+        body: const Center(child: Text('Page introuvable')),
       ),
     );
   }
