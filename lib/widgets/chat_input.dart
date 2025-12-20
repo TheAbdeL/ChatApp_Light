@@ -55,7 +55,7 @@ class _ChatInputState extends State<ChatInput> {
         widget.onSendImage(imageFile);
       }
     } catch (e) {
-      print('❌ Erreur lors de la sélection de l\'image: $e');
+      debugPrint('❌ Erreur lors de la sélection de l\'image: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -70,15 +70,12 @@ class _ChatInputState extends State<ChatInput> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
+            color: Colors.grey.withAlpha(51),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, -1),
@@ -89,10 +86,7 @@ class _ChatInputState extends State<ChatInput> {
         children: [
           // Bouton image
           IconButton(
-            icon: Icon(
-              Icons.image,
-              color: AppConstants.primaryColor,
-            ),
+            icon: Icon(Icons.image, color: AppConstants.primaryColor),
             onPressed: _pickImage,
             tooltip: 'Envoyer une image',
           ),
@@ -127,17 +121,11 @@ class _ChatInputState extends State<ChatInput> {
           Container(
             margin: const EdgeInsets.only(left: 8),
             decoration: BoxDecoration(
-              color: _isTyping
-                  ? AppConstants.primaryColor
-                  : Colors.grey[300],
+              color: _isTyping ? AppConstants.primaryColor : Colors.grey[300],
               shape: BoxShape.circle,
             ),
             child: IconButton(
-              icon: const Icon(
-                Icons.send,
-                color: Colors.white,
-                size: 20,
-              ),
+              icon: const Icon(Icons.send, color: Colors.white, size: 20),
               onPressed: _isTyping ? _sendMessage : null,
             ),
           ),
