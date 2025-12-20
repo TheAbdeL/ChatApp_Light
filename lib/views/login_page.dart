@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../utils/constants.dart';
+import 'register_page.dart';
+import 'users_page.dart';
 
-/// Écran d'inscription
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+/// Écran de connexion
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _LoginPageState extends State<LoginPage> {
   // Contrôleurs pour les champs de texte
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  final TextEditingController _displayNameController = TextEditingController();
-  
+
   // Service d'authentification
   final AuthService _authService = AuthService();
-  
+
   // État de chargement
   bool _isLoading = false;
-  
+
   // Clé du formulaire pour validation
   final _formKey = GlobalKey<FormState>();
 
@@ -29,13 +30,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    _displayNameController.dispose();
     super.dispose();
   }
 
-  /// Fonction d'inscription
-  Future<void> _handleRegister() async {
+  /// Fonction de connexion
+  Future<void> _handleLogin() async {
     // Vérifier la validation du formulaire
     if (!_formKey.currentState!.validate()) {
       return;
@@ -45,11 +44,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _isLoading = true;
     });
 
-    // Appeler le service d'inscription
-    String? error = await _authService.register(
+    // Appeler le service de connexion
+    String? error = await _authService.login(
       email: _emailController.text.trim(),
       password: _passwordController.text,
-      displayName: _displayNameController.text.trim(),
     );
 
     setState(() {
@@ -65,13 +63,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
     } else if (mounted) {
-      // Succès : retourner à l'écran de connexion
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Inscription réussie ! Vous pouvez vous connecter.'),
-          backgroundColor: Colors.green,
-        ),
+      // Succès : naviguer vers la liste des utilisateurs
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const UsersPage()),
       );
     }
   }
@@ -80,11 +74,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF075E54)),
-      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -95,55 +84,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Logo ou icône
-                  const Icon(
-                    Icons.person_add,
+                  Icon(
+                    Icons.chat_bubble,
                     size: 80,
-                    color: Color(0xFF075E54),
+                    color: AppConstants.appBarColor,
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Titre
-                  const Text(
-                    'Créer un compte',
+                  Text(
+                    AppConstants.appName,
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF075E54),
+                      color: AppConstants.appBarColor,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  
+
                   const Text(
-                    'Rejoignez ChatApp Light',
+                    'Bienvenue ! Connectez-vous',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
                     ),
                   ),
                   const SizedBox(height: 40),
-                  
-                  // Champ Nom d'affichage
-                  TextFormField(
-                    controller: _displayNameController,
-                    decoration: InputDecoration(
-                      labelText: 'Nom d\'affichage',
-                      prefixIcon: const Icon(Icons.person),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Veuillez entrer votre nom';
-                      }
-                      if (value.length < 3) {
-                        return 'Le nom doit contenir au moins 3 caractères';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  
+
                   // Champ Email
                   TextFormField(
                     controller: _emailController,
@@ -166,7 +133,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Champ Mot de passe
                   TextFormField(
                     controller: _passwordController,
@@ -180,7 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Veuillez entrer un mot de passe';
+                        return 'Veuillez entrer votre mot de passe';
                       }
                       if (value.length < 6) {
                         return 'Le mot de passe doit contenir au moins 6 caractères';
@@ -188,39 +155,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
-                  
-                  // Champ Confirmation mot de passe
-                  TextFormField(
-                    controller: _confirmPasswordController,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: 'Confirmer le mot de passe',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Veuillez confirmer votre mot de passe';
-                      }
-                      if (value != _passwordController.text) {
-                        return 'Les mots de passe ne correspondent pas';
-                      }
-                      return null;
-                    },
-                  ),
                   const SizedBox(height: 24),
-                  
-                  // Bouton d'inscription
+
+                  // Bouton de connexion
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleRegister,
+                      onPressed: _isLoading ? null : _handleLogin,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF075E54),
+                        backgroundColor: AppConstants.appBarColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -228,30 +172,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: _isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
-                              'S\'inscrire',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                        'Se connecter',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
-                  // Lien retour vers connexion
+
+                  // Lien vers l'inscription
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Déjà un compte ? '),
+                      const Text('Pas encore de compte ? '),
                       TextButton(
                         onPressed: () {
-                          Navigator.of(context).pop();
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(),
+                            ),
+                          );
                         },
-                        child: const Text(
-                          'Se connecter',
+                        child: Text(
+                          'S\'inscrire',
                           style: TextStyle(
-                            color: Color(0xFF075E54),
+                            color: AppConstants.appBarColor,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

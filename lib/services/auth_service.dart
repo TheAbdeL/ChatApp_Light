@@ -6,7 +6,7 @@ import '../models/user_model.dart';
 class AuthService {
   // Instance Firebase Auth
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  
+
   // Instance Firestore
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -57,7 +57,7 @@ class AuthService {
     } on FirebaseAuthException catch (e) {
       // Gestion des erreurs Firebase
       print('❌ Erreur Firebase Auth: ${e.code}');
-      
+
       switch (e.code) {
         case 'email-already-in-use':
           return 'Cet email est déjà utilisé';
@@ -102,7 +102,7 @@ class AuthService {
       return 'Erreur lors de la connexion';
     } on FirebaseAuthException catch (e) {
       print('❌ Erreur Firebase Auth: ${e.code}');
-      
+
       switch (e.code) {
         case 'user-not-found':
           return 'Aucun utilisateur trouvé avec cet email';
@@ -110,6 +110,8 @@ class AuthService {
           return 'Mot de passe incorrect';
         case 'invalid-email':
           return 'Email invalide';
+        case 'invalid-credential':
+          return 'Email ou mot de passe incorrect';
         default:
           return 'Erreur: ${e.message}';
       }
@@ -123,7 +125,7 @@ class AuthService {
   Future<void> logout() async {
     try {
       User? user = currentUser;
-      
+
       if (user != null) {
         // Mettre à jour le statut hors ligne
         await _firestore.collection('users').doc(user.uid).update({
@@ -144,7 +146,7 @@ class AuthService {
   Future<UserModel?> getUserData(String uid) async {
     try {
       DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
-      
+
       if (doc.exists) {
         return UserModel.fromFirestore(doc);
       }
@@ -152,6 +154,36 @@ class AuthService {
     } catch (e) {
       print('❌ Erreur lors de la récupération des données: $e');
       return null;
+    }
+  }
+
+  /// Mettre à jour le profil utilisateur
+  Future<String?> updateProfile({
+    required String displayName,
+    String? photoUrl,
+  }) async {
+    try {
+      User? user = currentUser;
+
+      if (user == null) {
+        return 'Utilisateur non connecté';
+      }
+
+      Map<String, dynamic> updates = {
+        'displayName': displayName,
+      };
+
+      if (photoUrl != null) {
+        updates['photoUrl'] = photoUrl;
+      }
+
+      await _firestore.collection('users').doc(user.uid).update(updates);
+
+      print('✅ Profil mis à jour');
+      return null;
+    } catch (e) {
+      print('❌ Erreur lors de la mise à jour du profil: $e');
+      return 'Erreur lors de la mise à jour du profil';
     }
   }
 }
