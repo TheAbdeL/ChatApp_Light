@@ -1,74 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';  // ← AJOUTÉ
-import 'services/auth_service.dart';
-import 'views/login_screen.dart';
+import 'firebase_options.dart';
+import 'utils/constants.dart';
+import 'views/splash_screen.dart';
+import 'views/login_page.dart';
+import 'views/register_page.dart';
+import 'views/users_page.dart';
 
 void main() async {
-  // Initialisation Flutter
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialisation Firebase avec ta config
+
+  // Initialiser Firebase
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,  // ← MODIFIÉ
+    options: DefaultFirebaseOptions.currentPlatform,
   );
-  
-  // Lancer l'application
+
   runApp(const MyApp());
 }
 
-/// Widget principal de l'application
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ChatApp Light',
+      title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: const Color(0xFF075E54),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF075E54),
+        primaryColor: AppConstants.primaryColor,
+        scaffoldBackgroundColor: AppConstants.backgroundColor,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppConstants.appBarColor,
+          elevation: 0,
+          centerTitle: true,
         ),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppConstants.primaryColor,
+        ),
+        useMaterial3: true,
       ),
-      // Écouter l'état d'authentification
-      home: StreamBuilder(
-        stream: AuthService().authStateChanges,
-        builder: (context, snapshot) {
-          // En cours de chargement
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-          
-          // Si connecté
-          if (snapshot.hasData) {
-            return Scaffold(
-              appBar: AppBar(
-                title: const Text('Accueil'),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.logout),
-                    onPressed: () async {
-                      await AuthService().logout();
-                    },
-                  ),
-                ],
-              ),
-              body: const Center(
-                child: Text('Connecté avec succès !'),
-              ),
-            );
-          }
-          
-          // Sinon, connexion
-          return const LoginScreen();
-        },
-      ),
+      home: const SplashScreen(),
+      routes: {
+        '/login': (context) => const LoginPage(),
+        '/register': (context) => const RegisterPage(),
+        '/users': (context) => const UsersPage(),
+      },
     );
   }
 }

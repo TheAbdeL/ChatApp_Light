@@ -1,26 +1,28 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'register_screen.dart';
+import '../utils/constants.dart';
 
-/// Écran de connexion
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+/// Écran d'inscription
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterPageState extends State<RegisterPage> {
   // Contrôleurs pour les champs de texte
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
+  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _displayNameController = TextEditingController();
+
   // Service d'authentification
   final AuthService _authService = AuthService();
-  
+
   // État de chargement
   bool _isLoading = false;
-  
+
   // Clé du formulaire pour validation
   final _formKey = GlobalKey<FormState>();
 
@@ -28,11 +30,13 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _displayNameController.dispose();
     super.dispose();
   }
 
-  /// Fonction de connexion
-  Future<void> _handleLogin() async {
+  /// Fonction d'inscription
+  Future<void> _handleRegister() async {
     // Vérifier la validation du formulaire
     if (!_formKey.currentState!.validate()) {
       return;
@@ -42,10 +46,11 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    // Appeler le service de connexion
-    String? error = await _authService.login(
+    // Appeler le service d'inscription
+    String? error = await _authService.register(
       email: _emailController.text.trim(),
       password: _passwordController.text,
+      displayName: _displayNameController.text.trim(),
     );
 
     setState(() {
@@ -60,14 +65,27 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } else if (mounted) {
+      // Succès : retourner à l'écran de connexion
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Inscription réussie ! Vous pouvez vous connecter.'),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
-    // Si pas d'erreur, l'AuthStateListener redirigera automatiquement
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: AppConstants.appBarColor),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -78,33 +96,55 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Logo ou icône
-                  const Icon(
-                    Icons.chat_bubble,
+                  Icon(
+                    Icons.person_add,
                     size: 80,
-                    color: Color(0xFF075E54),
+                    color: AppConstants.appBarColor,
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Titre
-                  const Text(
-                    'ChatApp Light',
+                  Text(
+                    'Créer un compte',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF075E54),
+                      color: AppConstants.appBarColor,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  
-                  const Text(
-                    'Bienvenue ! Connectez-vous',
-                    style: TextStyle(
+
+                  Text(
+                    'Rejoignez ${AppConstants.appName}',
+                    style: const TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
                     ),
                   ),
                   const SizedBox(height: 40),
-                  
+
+                  // Champ Nom d'affichage
+                  TextFormField(
+                    controller: _displayNameController,
+                    decoration: InputDecoration(
+                      labelText: 'Nom d\'affichage',
+                      prefixIcon: const Icon(Icons.person),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Veuillez entrer votre nom';
+                      }
+                      if (value.length < 3) {
+                        return 'Le nom doit contenir au moins 3 caractères';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
                   // Champ Email
                   TextFormField(
                     controller: _emailController,
@@ -127,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Champ Mot de passe
                   TextFormField(
                     controller: _passwordController,
@@ -141,7 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Veuillez entrer votre mot de passe';
+                        return 'Veuillez entrer un mot de passe';
                       }
                       if (value.length < 6) {
                         return 'Le mot de passe doit contenir au moins 6 caractères';
@@ -149,16 +189,39 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
+                  const SizedBox(height: 16),
+
+                  // Champ Confirmation mot de passe
+                  TextFormField(
+                    controller: _confirmPasswordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'Confirmer le mot de passe',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Veuillez confirmer votre mot de passe';
+                      }
+                      if (value != _passwordController.text) {
+                        return 'Les mots de passe ne correspondent pas';
+                      }
+                      return null;
+                    },
+                  ),
                   const SizedBox(height: 24),
-                  
-                  // Bouton de connexion
+
+                  // Bouton d'inscription
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleLogin,
+                      onPressed: _isLoading ? null : _handleRegister,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF075E54),
+                        backgroundColor: AppConstants.appBarColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -166,34 +229,30 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: _isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
-                              'Se connecter',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                        'S\'inscrire',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
-                  // Lien vers l'inscription
+
+                  // Lien retour vers connexion
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Pas encore de compte ? '),
+                      const Text('Déjà un compte ? '),
                       TextButton(
                         onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const RegisterScreen(),
-                            ),
-                          );
+                          Navigator.of(context).pop();
                         },
-                        child: const Text(
-                          'S\'inscrire',
+                        child: Text(
+                          'Se connecter',
                           style: TextStyle(
-                            color: Color(0xFF075E54),
+                            color: AppConstants.appBarColor,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

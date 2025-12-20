@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1083274488116",
+    "project_id": "chatapp-light-4b72e",
+    "storage_bucket": "chatapp-light-4b72e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1083274488116:android:8b23775e882856949cdd61",
+        "android_client_info": {
+          "package_name": "com.example.chatapp_light"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTKhwWAFtgDpwUwyYIrPZSNv3kEzOWPIA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
