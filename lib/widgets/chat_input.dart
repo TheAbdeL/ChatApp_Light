@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:async';
 import '../utils/constants.dart';
 
 /// Widget pour le champ de saisie du chat
 class ChatInput extends StatefulWidget {
   final Function(String) onSendMessage;
   final Function(File) onSendImage;
+  final Function(bool)? onTypingChanged;
 
   const ChatInput({
     super.key,
     required this.onSendMessage,
     required this.onSendImage,
+    this.onTypingChanged,
   });
 
   @override
@@ -22,9 +25,11 @@ class _ChatInputState extends State<ChatInput> {
   final TextEditingController _controller = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   bool _isTyping = false;
+  Timer? _stopTypingTimer;
 
   @override
   void dispose() {
+    _stopTypingTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -37,6 +42,8 @@ class _ChatInputState extends State<ChatInput> {
       setState(() {
         _isTyping = false;
       });
+      widget.onTypingChanged?.call(false);
+      _stopTypingTimer?.cancel();
     }
   }
 
@@ -108,9 +115,26 @@ class _ChatInputState extends State<ChatInput> {
                 maxLines: null,
                 textCapitalization: TextCapitalization.sentences,
                 onChanged: (value) {
-                  setState(() {
-                    _isTyping = value.trim().isNotEmpty;
-                  });
+                  final typing = value.trim().isNotEmpty;
+                  if (typing != _isTyping) {
+                    setState(() {
+                      _isTyping = typing;
+                    });
+                    widget.onTypingChanged?.call(typing);
+                  }
+
+                  // debounce: consider user stopped typing after 2s of silence
+                  _stopTypingTimer?.cancel();
+                  if (typing) {
+                    _stopTypingTimer = Timer(const Duration(seconds: 2), () {
+                      if (mounted) {
+                        setState(() {
+                          _isTyping = false;
+                        });
+                        widget.onTypingChanged?.call(false);
+                      }
+                    });
+                  }
                 },
                 onSubmitted: (_) => _sendMessage(),
               ),

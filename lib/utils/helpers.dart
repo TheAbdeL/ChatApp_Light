@@ -53,7 +53,8 @@ class Helpers {
 
   /// Générer un chatId unique entre deux utilisateurs
   static String getChatId(String userId1, String userId2) {
-    return userId1.hashCode <= userId2.hashCode
+    // Use lexicographic ordering to ensure deterministic ID across devices
+    return userId1.compareTo(userId2) <= 0
         ? '${userId1}_$userId2'
         : '${userId2}_$userId1';
   }

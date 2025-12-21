@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
+import '../models/chat_model.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../services/chat_service.dart';
@@ -12,7 +13,9 @@ import 'chat_page.dart';
 import 'login_page.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
-
+import '../widgets/drawer.dart';
+import 'create_group_page.dart';
+// group pages removed
 /// Page de liste des utilisateurs
 class UsersPage extends StatefulWidget {
   const UsersPage({super.key});
@@ -253,6 +256,15 @@ class _UsersPageState extends State<UsersPage> {
             },
           ),
 
+            // Bouton Créer un groupe
+            IconButton(
+              icon: const Icon(Icons.group_add, color: Colors.white),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateGroupPage()));
+              },
+              tooltip: 'Créer un groupe',
+            ),
+
           // Bouton de déconnexion
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
@@ -261,8 +273,10 @@ class _UsersPageState extends State<UsersPage> {
           ),
         ],
       ),
+      drawer: MyDrawer(),
       body: Column(
         children: [
+          // groups UI removed
           // Barre de recherche
           Container(
             color: isDark ? const Color(0xFF1E1E1E) : Colors.white,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import '../models/message_model.dart';
 import '../services/auth_service.dart';
@@ -34,16 +35,30 @@ class _ChatPageState extends State<ChatPage> {
 
   bool _isOnline = false;
   bool _isSendingImage = false;
+  Stream? _chatDocStream;
 
   @override
   void initState() {
     super.initState();
     _markMessagesAsRead();
     _listenToUserStatus();
+    _initChatDocStream();
+  }
+
+  void _initChatDocStream() {
+    String? currentUserId = _authService.currentUser?.uid;
+    if (currentUserId != null) {
+      _chatDocStream = _chatService.getChatDocStream(currentUserId, widget.userId);
+    }
   }
 
   @override
   void dispose() {
+    // ensure typing status cleared when leaving
+    String? currentUserId = _authService.currentUser?.uid;
+    if (currentUserId != null) {
+      _chatService.setTyping(senderId: currentUserId, receiverId: widget.userId, isTyping: false);
+    }
     _scrollController.dispose();
     super.dispose();
   }
@@ -157,7 +172,7 @@ class _ChatPageState extends State<ChatPage> {
       appBar: AppBar(
         backgroundColor: AppConstants.appBarColor,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: Row(
+                  title: Row(
           children: [
             // Avatar de l'utilisateur
             UserAvatar(
@@ -169,7 +184,7 @@ class _ChatPageState extends State<ChatPage> {
             ),
             const SizedBox(width: 12),
 
-            // Nom et statut
+            // Nom et statut / typing
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,12 +198,29 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  Text(
-                    _isOnline ? 'En ligne' : 'Hors ligne',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
+                  StreamBuilder<DocumentSnapshot?>(
+                    stream: _chatDocStream as Stream<DocumentSnapshot?>?,
+                    builder: (context, snap) {
+                      // default status
+                      String status = _isOnline ? 'En ligne' : 'Hors ligne';
+
+                      if (snap.hasData && snap.data != null && snap.data!.exists) {
+                        final data = snap.data!.data() as Map<String, dynamic>?;
+                        final typing = data?['typing'] as Map<String, dynamic>?;
+                        final otherIsTyping = typing != null && (typing[widget.userId]?.toString() == 'true' || typing[widget.userId] == true);
+                        if (otherIsTyping) {
+                          status = 'en train d\'écrire...';
+                        }
+                      }
+
+                      return Text(
+                        status,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -302,6 +334,12 @@ class _ChatPageState extends State<ChatPage> {
           ChatInput(
             onSendMessage: _sendMessage,
             onSendImage: _sendImage,
+            onTypingChanged: (isTyping) {
+              String? currentUserId = _authService.currentUser?.uid;
+              if (currentUserId != null) {
+                _chatService.setTyping(senderId: currentUserId, receiverId: widget.userId, isTyping: isTyping);
+              }
+            },
           ),
         ],
       ),
