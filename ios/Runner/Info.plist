@@ -2,6 +2,17 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- 📸 PERMISSIONS POUR IMAGES ET CAMÉRA -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Nous avons besoin d'accéder à vos photos pour envoyer des images</string>
+	
+	<key>NSCameraUsageDescription</key>
+	<string>Nous avons besoin d'accéder à votre caméra pour prendre des photos</string>
+	
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Nous avons besoin de sauvegarder des photos dans votre galerie</string>
+	
+	<!-- 📱 CONFIGURATIONS EXISTANTES -->
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

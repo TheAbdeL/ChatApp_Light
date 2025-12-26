@@ -10,6 +10,7 @@ import '../utils/helpers.dart';
 import '../widgets/user_avatar.dart';
 import 'chat_page.dart';
 import 'login_page.dart';
+import 'profile_page.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 
@@ -51,18 +52,22 @@ class _UsersPageState extends State<UsersPage> {
 
     if (firebaseUser != null) {
       UserModel? user = await _authService.getUserData(firebaseUser.uid);
-      setState(() {
-        _currentUser = user;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+          _isLoading = false;
+        });
+      }
 
       if (user != null) {
         _listenForNewMessages(user.uid);
       }
     } else {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -189,6 +194,14 @@ class _UsersPageState extends State<UsersPage> {
     );
   }
 
+  /// Naviguer vers la page de profil
+  void _navigateToProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ProfilePage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -231,12 +244,19 @@ class _UsersPageState extends State<UsersPage> {
               ),
             ),
             Text(
-              _currentUser!.displayName,
+              _currentUser?.displayName ?? 'Utilisateur',  // ✅ Protection null
               style: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ],
         ),
         actions: [
+          // Bouton Profil
+          IconButton(
+            icon: const Icon(Icons.person, color: Colors.white),
+            onPressed: _navigateToProfile,
+            tooltip: 'Mon profil',
+          ),
+
           // Bouton Dark Mode
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, child) {
@@ -286,10 +306,12 @@ class _UsersPageState extends State<UsersPage> {
                           color: isDark ? Colors.white70 : Colors.black54,
                         ),
                         onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                            _searchQuery = '';
-                          });
+                          if (mounted) {
+                            setState(() {
+                              _searchController.clear();
+                              _searchQuery = '';
+                            });
+                          }
                         },
                       )
                     : null,
@@ -305,9 +327,11 @@ class _UsersPageState extends State<UsersPage> {
                 ),
               ),
               onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
+                if (mounted) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                }
               },
             ),
           ),
@@ -425,13 +449,14 @@ class _UsersPageState extends State<UsersPage> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: UserAvatar(
           photoUrl: user.photoUrl,
-          displayName: user.displayName,
+          displayName: user.displayName ?? 'Utilisateur',  // ✅ Protection null
           radius: 28,
           showOnlineIndicator: true,
-          isOnline: user.isOnline,
+          isOnline: user.isOnline ?? false,  // ✅ Protection null
+          isClickable: true,  // ✅ Cliquable pour voir la photo
         ),
         title: Text(
-          user.displayName,
+          user.displayName ?? 'Utilisateur',  // ✅ Protection null
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
@@ -439,11 +464,11 @@ class _UsersPageState extends State<UsersPage> {
           ),
         ),
         subtitle: Text(
-          user.isOnline
+          (user.isOnline ?? false)  // ✅ Protection null
               ? 'En ligne'
               : 'Vu ${Helpers.formatTimestamp(user.lastSeen)}',
           style: TextStyle(
-            color: user.isOnline
+            color: (user.isOnline ?? false)  // ✅ Protection null
                 ? Colors.green
                 : (isDark ? Colors.white60 : Colors.grey[600]),
             fontSize: 13,

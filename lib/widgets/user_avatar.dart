@@ -1,76 +1,122 @@
 import 'package:flutter/material.dart';
-import '../utils/constants.dart';
+import '../views/photo_viewer.dart';
 
-/// Widget pour afficher l'avatar d'un utilisateur
+/// Widget d'avatar utilisateur avec photo ou initiales (CLIQUABLE)
 class UserAvatar extends StatelessWidget {
   final String? photoUrl;
   final String displayName;
   final double radius;
   final bool showOnlineIndicator;
   final bool isOnline;
+  final bool isClickable;
 
   const UserAvatar({
     super.key,
     this.photoUrl,
     required this.displayName,
-    this.radius = 24,
+    this.radius = 20,
     this.showOnlineIndicator = false,
     this.isOnline = false,
+    this.isClickable = true,
   });
+
+  /// Obtenir les initiales du nom
+  String _getInitials() {
+    if (displayName.isEmpty) return '?';
+    List<String> parts = displayName.trim().split(' ');
+    if (parts.length == 1) {
+      return parts[0][0].toUpperCase();
+    }
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  /// Obtenir une couleur basée sur le nom
+  Color _getColorFromName() {
+    int hash = displayName.hashCode;
+    List<Color> colors = [
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.teal,
+      Colors.pink,
+      Colors.indigo,
+      Colors.red,
+    ];
+    return colors[hash.abs() % colors.length];
+  }
+
+  /// Ouvrir le viewer de photo
+  void _openPhotoViewer(BuildContext context) {
+    if (!isClickable) return;
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PhotoViewer(
+          photoUrl: photoUrl,
+          displayName: displayName,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    Widget avatarWidget = Stack(
       children: [
-        CircleAvatar(
-          radius: radius,
-          backgroundColor: AppConstants.primaryColor,
-          backgroundImage: photoUrl != null && photoUrl!.isNotEmpty
-              ? NetworkImage(photoUrl!)
-              : null,
-          child: photoUrl == null || photoUrl!.isEmpty
-              ? Text(
-            _getInitials(displayName),
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: radius * 0.6,
-              fontWeight: FontWeight.bold,
-            ),
-          )
-              : null,
+        // Avatar principal avec Hero animation
+        Hero(
+          tag: 'photo_${photoUrl ?? displayName}',
+          child: CircleAvatar(
+            radius: radius,
+            backgroundColor: _getColorFromName(),
+            backgroundImage: (photoUrl != null && photoUrl!.isNotEmpty)
+                ? NetworkImage(photoUrl!)
+                : null,
+            child: (photoUrl == null || photoUrl!.isEmpty)
+                ? Text(
+                    _getInitials(),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: radius * 0.6,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                : null,
+          ),
         ),
 
-        // Indicateur en ligne
+        // Indicateur en ligne (optionnel)
         if (showOnlineIndicator)
           Positioned(
-            right: 0,
             bottom: 0,
+            right: 0,
             child: Container(
-              width: radius * 0.4,
-              height: radius * 0.4,
+              width: radius * 0.35,
+              height: radius * 0.35,
               decoration: BoxDecoration(
                 color: isOnline ? Colors.green : Colors.grey,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: Colors.white,
-                  width: 2,
+                  width: radius * 0.08,
                 ),
               ),
             ),
           ),
       ],
     );
-  }
 
-  /// Obtenir les initiales du nom
-  String _getInitials(String name) {
-    List<String> nameParts = name.trim().split(' ');
-    if (nameParts.isEmpty) return '?';
-
-    if (nameParts.length == 1) {
-      return nameParts[0][0].toUpperCase();
+    // Rendre cliquable si isClickable = true
+    if (isClickable) {
+      return InkWell(
+        onTap: () => _openPhotoViewer(context),
+        borderRadius: BorderRadius.circular(radius),
+        child: avatarWidget,
+      );
     }
 
-    return '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase();
+    return avatarWidget;
   }
 }

@@ -4,12 +4,13 @@ import '../models/message_model.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../services/user_service.dart';
+import '../services/audio_service_simple.dart';
 import '../utils/constants.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/chat_input.dart';
 import '../widgets/user_avatar.dart';
 
-/// Page de chat privé
+/// Page de chat privé (Compatible Web + Mobile + Vocal)
 class ChatPage extends StatefulWidget {
   final String userId;
   final String userName;
@@ -30,6 +31,7 @@ class _ChatPageState extends State<ChatPage> {
   final AuthService _authService = AuthService();
   final ChatService _chatService = ChatService();
   final UserService _userService = UserService();
+  final AudioServiceSimple _audioService = AudioServiceSimple();
   final ScrollController _scrollController = ScrollController();
 
   bool _isOnline = false;
@@ -45,13 +47,14 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _audioService.dispose();
     super.dispose();
   }
 
   /// Marquer les messages comme lus
   void _markMessagesAsRead() {
     String? currentUserId = _authService.currentUser?.uid;
-    if (currentUserId != null) {
+    if (currentUserId != null) {  // ✅ AJOUT DE LA VÉRIFICATION
       _chatService.markMessagesAsRead(currentUserId, widget.userId);
     }
   }
@@ -71,7 +74,7 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _sendMessage(String text) async {
     String? currentUserId = _authService.currentUser?.uid;
 
-    if (currentUserId == null) {
+    if (currentUserId == null) {  // ✅ AJOUT DE LA VÉRIFICATION
       _showError('Erreur d\'authentification');
       return;
     }
@@ -89,11 +92,11 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  /// Envoyer une image
-  Future<void> _sendImage(File imageFile) async {
+  /// Envoyer une image (Compatible Web + Mobile)
+  Future<void> _sendImage(dynamic imageFile) async {
     String? currentUserId = _authService.currentUser?.uid;
 
-    if (currentUserId == null) {
+    if (currentUserId == null) {  // ✅ AJOUT DE LA VÉRIFICATION
       _showError('Erreur d\'authentification');
       return;
     }
@@ -102,19 +105,128 @@ class _ChatPageState extends State<ChatPage> {
       _isSendingImage = true;
     });
 
+    // Afficher un message de progression
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(width: 16),
+              Text('Envoi de l\'image en cours...'),
+            ],
+          ),
+          duration: Duration(seconds: 30),
+        ),
+      );
+    }
+
     String? error = await _chatService.sendImageMessage(
       senderId: currentUserId,
       receiverId: widget.userId,
       imageFile: imageFile,
     );
 
-    setState(() {
-      _isSendingImage = false;
-    });
+    if (mounted) {  // ✅ AJOUT DE LA VÉRIFICATION
+      setState(() {
+        _isSendingImage = false;
+      });
+    }
+
+    // Cacher le snackbar de progression
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    }
 
     if (error != null && mounted) {
       _showError(error);
     } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Image envoyée avec succès'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      _scrollToBottom();
+    }
+  }
+
+  /// Envoyer un message vocal
+  Future<void> _sendVoiceMessage(File audioFile, int duration) async {
+    String? currentUserId = _authService.currentUser?.uid;
+
+    if (currentUserId == null) {  // ✅ AJOUT DE LA VÉRIFICATION
+      _showError('Erreur d\'authentification');
+      return;
+    }
+
+    setState(() {
+      _isSendingImage = true;
+    });
+
+    // Afficher un message de progression
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(width: 16),
+              Text('Envoi du message vocal...'),
+            ],
+          ),
+          duration: Duration(seconds: 30),
+        ),
+      );
+    }
+
+    String? error = await _chatService.sendVoiceMessage(
+      senderId: currentUserId,
+      receiverId: widget.userId,
+      audioFile: audioFile,
+      duration: duration,
+    );
+
+    if (mounted) {  // ✅ AJOUT DE LA VÉRIFICATION
+      setState(() {
+        _isSendingImage = false;
+      });
+    }
+
+    // Cacher le snackbar de progression
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    }
+
+    if (error != null && mounted) {
+      _showError(error);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🎤 Message vocal envoyé avec succès'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
       _scrollToBottom();
     }
   }
@@ -146,7 +258,7 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     String? currentUserId = _authService.currentUser?.uid;
 
-    if (currentUserId == null) {
+    if (currentUserId == null) {  // ✅ AJOUT DE LA VÉRIFICATION
       return const Scaffold(
         body: Center(child: Text('Erreur d\'authentification')),
       );
@@ -273,6 +385,7 @@ class _ChatPageState extends State<ChatPage> {
                     return MessageBubble(
                       message: message,
                       isMe: isMe,
+                      audioService: _audioService,
                     );
                   },
                 );
@@ -280,20 +393,20 @@ class _ChatPageState extends State<ChatPage> {
             ),
           ),
 
-          // Indicateur d'envoi d'image
+          // Indicateur d'envoi d'image/vocal
           if (_isSendingImage)
             Container(
               padding: const EdgeInsets.all(8),
               color: Colors.grey[200],
-              child: Row(
+              child: const Row(
                 children: [
-                  const SizedBox(
+                  SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-                  const SizedBox(width: 12),
-                  const Text('Envoi de l\'image...'),
+                  SizedBox(width: 12),
+                  Text('Envoi en cours...'),
                 ],
               ),
             ),
@@ -302,6 +415,7 @@ class _ChatPageState extends State<ChatPage> {
           ChatInput(
             onSendMessage: _sendMessage,
             onSendImage: _sendImage,
+            onSendVoice: _sendVoiceMessage,
           ),
         ],
       ),

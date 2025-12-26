@@ -4,6 +4,7 @@ import '../views/login_page.dart';
 import '../views/register_page.dart';
 import '../views/users_page.dart';
 import '../views/chat_page.dart';
+import '../views/profile_page.dart';  // ✅ AJOUTÉ
 
 /// Gestion des routes de l'application
 class Routes {
@@ -12,6 +13,7 @@ class Routes {
   static const String register = '/register';
   static const String users = '/users';
   static const String chat = '/chat';
+  static const String profile = '/profile';  // ✅ AJOUTÉ
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -39,6 +41,10 @@ class Routes {
           );
         }
         return _errorRoute();
+      
+      // ✅ NOUVEAU - Route profil
+      case profile:
+        return MaterialPageRoute(builder: (_) => const ProfilePage());
       
       default:
         return _errorRoute();

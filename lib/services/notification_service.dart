@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:audioplayers/audioplayers.dart';
 import '../utils/constants.dart';
 
 /// Service pour afficher des notifications in-app avec son
@@ -9,16 +8,11 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final AudioPlayer _audioPlayer = AudioPlayer();
-
   /// Jouer le son de notification
   Future<void> _playNotificationSound() async {
     try {
       // Jouer un son système (beep)
       await SystemSound.play(SystemSoundType.alert);
-
-      // Alternative : Jouer un fichier audio personnalisé
-      // await _audioPlayer.play(AssetSource('sounds/notification.mp3'));
 
       debugPrint('🔊 Son de notification joué');
     } catch (e) {
@@ -81,10 +75,7 @@ class NotificationService {
                     child: Text(
                       senderName[0].toUpperCase(),
                       style: const TextStyle(
-                        
-                        
-                        
-                      color: AppConstants.primaryColor,
+                        color: AppConstants.primaryColor,
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
@@ -184,7 +175,7 @@ class NotificationService {
             ),
           ),
         ),
-       backgroundColor: AppConstants.primaryColor,
+        backgroundColor: AppConstants.primaryColor,
         duration: const Duration(seconds: 5),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
@@ -251,8 +242,9 @@ class NotificationService {
     );
   }
 
-  /// Libérer les ressources
+  /// Libérer les ressources (plus besoin de dispose AudioPlayer)
   void dispose() {
-    _audioPlayer.dispose();
+    // Rien à libérer maintenant
+    debugPrint('✅ NotificationService disposed');
   }
 }

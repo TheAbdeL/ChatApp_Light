@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Modèle représentant un message
+/// Modèle représentant un message (avec support audio)
 class MessageModel {
   final String id;
   final String senderId;
   final String receiverId;
   final String text;
   final String? imageUrl;
+  final String? audioUrl;      // ✅ NOUVEAU - URL du message vocal
+  final int? audioDuration;    // ✅ NOUVEAU - Durée en secondes
   final DateTime timestamp;
   final bool isRead;
 
@@ -16,6 +18,8 @@ class MessageModel {
     required this.receiverId,
     required this.text,
     this.imageUrl,
+    this.audioUrl,
+    this.audioDuration,
     required this.timestamp,
     this.isRead = false,
   });
@@ -30,6 +34,8 @@ class MessageModel {
       receiverId: data['receiverId'] ?? '',
       text: data['text'] ?? '',
       imageUrl: data['imageUrl'],
+      audioUrl: data['audioUrl'],           // ✅ NOUVEAU
+      audioDuration: data['audioDuration'], // ✅ NOUVEAU
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isRead: data['isRead'] ?? false,
     );
@@ -42,6 +48,8 @@ class MessageModel {
       'receiverId': receiverId,
       'text': text,
       'imageUrl': imageUrl,
+      'audioUrl': audioUrl,           // ✅ NOUVEAU
+      'audioDuration': audioDuration, // ✅ NOUVEAU
       'timestamp': Timestamp.fromDate(timestamp),
       'isRead': isRead,
     };
@@ -54,6 +62,8 @@ class MessageModel {
     String? receiverId,
     String? text,
     String? imageUrl,
+    String? audioUrl,
+    int? audioDuration,
     DateTime? timestamp,
     bool? isRead,
   }) {
@@ -63,8 +73,19 @@ class MessageModel {
       receiverId: receiverId ?? this.receiverId,
       text: text ?? this.text,
       imageUrl: imageUrl ?? this.imageUrl,
+      audioUrl: audioUrl ?? this.audioUrl,
+      audioDuration: audioDuration ?? this.audioDuration,
       timestamp: timestamp ?? this.timestamp,
       isRead: isRead ?? this.isRead,
     );
   }
+
+  /// Vérifier si c'est un message vocal
+  bool get isVoiceMessage => audioUrl != null && audioUrl!.isNotEmpty;
+
+  /// Vérifier si c'est un message image
+  bool get isImageMessage => imageUrl != null && imageUrl!.isNotEmpty;
+
+  /// Vérifier si c'est un message texte uniquement
+  bool get isTextOnly => !isVoiceMessage && !isImageMessage;
 }
