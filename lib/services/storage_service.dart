@@ -13,7 +13,7 @@ class StorageService {
   /// Upload une image de profil utilisateur (WEB + MOBILE)
   Future<String?> uploadProfileImage({
     required String userId,
-    required dynamic imageFile,  // ✅ CHANGÉ: accepte File ou XFile
+    required dynamic imageFile,
   }) async {
     try {
       debugPrint('📤 Upload de l\'image de profil pour $userId...');
@@ -21,7 +21,6 @@ class StorageService {
       final String fileName = 'profile_$userId.jpg';
       final Reference ref = _storage.ref().child('profile_images').child(fileName);
 
-      // Metadata de l'image
       final metadata = SettableMetadata(
         contentType: 'image/jpeg',
         customMetadata: {
@@ -30,15 +29,12 @@ class StorageService {
         },
       );
 
-      // ✅ Upload selon la plateforme
       UploadTask uploadTask;
       
       if (kIsWeb) {
-        // Web: imageFile est XFile
         final bytes = await (imageFile as XFile).readAsBytes();
         uploadTask = ref.putData(bytes, metadata);
       } else {
-        // Mobile: imageFile est File
         uploadTask = ref.putFile(imageFile as File, metadata);
       }
 
@@ -57,7 +53,7 @@ class StorageService {
   Future<String?> uploadChatImage({
     required String senderId,
     required String receiverId,
-    required dynamic imageFile,  // ✅ Accepte File ou XFile
+    required dynamic imageFile,
     Function(double)? onProgress,
   }) async {
     try {
@@ -71,7 +67,6 @@ class StorageService {
           .child(chatId)
           .child(fileName);
 
-      // Metadata de l'image
       final metadata = SettableMetadata(
         contentType: 'image/jpeg',
         customMetadata: {
@@ -80,19 +75,15 @@ class StorageService {
         },
       );
 
-      // ✅ Upload selon la plateforme
       UploadTask uploadTask;
       
       if (kIsWeb) {
-        // Web: imageFile est XFile
         final bytes = await (imageFile as XFile).readAsBytes();
         uploadTask = ref.putData(bytes, metadata);
       } else {
-        // Mobile: imageFile est File
         uploadTask = ref.putFile(imageFile as File, metadata);
       }
 
-      // Écouter la progression
       uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
         double progress = snapshot.bytesTransferred / snapshot.totalBytes;
         debugPrint('📊 Progression: ${(progress * 100).toStringAsFixed(0)}%');
@@ -110,14 +101,55 @@ class StorageService {
     }
   }
 
-  /// ✅ NOUVEAU - Upload message vocal
-  Future<String?> uploadVoiceMessage({
-    required String senderId,
-    required String receiverId,
-    required File audioFile,
+  /// Upload une image pour un groupe ou chat
+  Future<String?> uploadGroupImage({
+    required String chatId,
+    required dynamic imageFile,
   }) async {
     try {
-      final String chatId = '${senderId}_$receiverId';
+      debugPrint('📤 Upload de l\'image pour le chat/groupe $chatId...');
+
+      final String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final Reference ref = _storage
+          .ref()
+          .child('chat_images')
+          .child(chatId)
+          .child(fileName);
+
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {
+          'chatId': chatId,
+          'uploadedAt': DateTime.now().toIso8601String(),
+        },
+      );
+
+      UploadTask uploadTask;
+      
+      if (kIsWeb) {
+        final bytes = await (imageFile as XFile).readAsBytes();
+        uploadTask = ref.putData(bytes, metadata);
+      } else {
+        uploadTask = ref.putFile(imageFile as File, metadata);
+      }
+
+      final TaskSnapshot snapshot = await uploadTask;
+      final String downloadUrl = await snapshot.ref.getDownloadURL();
+
+      debugPrint('✅ Image de chat/groupe uploadée: $downloadUrl');
+      return downloadUrl;
+    } catch (e) {
+      debugPrint('❌ Erreur upload image: $e');
+      return null;
+    }
+  }
+
+  /// Upload message vocal pour chat ou groupe
+  Future<String?> uploadVoiceMessage({
+    required String chatId,
+    required String audioPath,
+  }) async {
+    try {
       debugPrint('🎤 Upload message vocal pour $chatId...');
 
       final String fileName = '${DateTime.now().millisecondsSinceEpoch}.aac';
@@ -127,6 +159,7 @@ class StorageService {
           .child(chatId)
           .child(fileName);
 
+      final File audioFile = File(audioPath);
       final UploadTask uploadTask = ref.putFile(audioFile);
       final TaskSnapshot snapshot = await uploadTask;
       final String downloadUrl = await snapshot.ref.getDownloadURL();
@@ -159,11 +192,10 @@ class StorageService {
 
       if (image != null) {
         debugPrint('✅ Image sélectionnée: ${image.path}');
-        // ✅ Retourner File (mobile) ou XFile (web)
         if (kIsWeb) {
-          return image; // XFile pour Web
+          return image;
         } else {
-          return File(image.path); // File pour Mobile
+          return File(image.path);
         }
       } else {
         debugPrint('⚠️ Aucune image sélectionnée');

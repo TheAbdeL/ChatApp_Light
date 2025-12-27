@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';  // ✅ CETTE LIGNE
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/theme_provider.dart';
+import 'services/auth_service.dart';  // ✅ CETTE LIGNE
 import 'views/splash_screen.dart';
 
 void main() async {
@@ -20,8 +22,63 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Écouter les changements d'état de l'app
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    // ✅ Retirer l'observer
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    // ✅ Mettre à jour le statut selon l'état de l'app
+    final currentUserId = _authService.currentUser?.uid;
+    
+    if (currentUserId != null) {
+      switch (state) {
+        case AppLifecycleState.resumed:
+          // App au premier plan → En ligne
+          debugPrint('📱 App au premier plan → En ligne');
+          _authService.setupPresence(currentUserId);
+          break;
+          
+        case AppLifecycleState.paused:
+        case AppLifecycleState.inactive:
+        case AppLifecycleState.detached:
+          // App en arrière-plan ou fermée → Hors ligne
+          debugPrint('📱 App en arrière-plan → Hors ligne');
+          FirebaseFirestore.instance.collection('users').doc(currentUserId).update({
+            'isOnline': false,
+            'lastSeen': FieldValue.serverTimestamp(),
+          }).catchError((error) {
+            debugPrint('❌ Erreur mise à jour statut: $error');
+          });
+          break;
+          
+        case AppLifecycleState.hidden:
+          break;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

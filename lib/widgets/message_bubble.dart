@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/message_model.dart';
 import '../services/audio_service_simple.dart';
-import '../widgets/voice_message_bubble.dart';
+import '../widgets/voice_message_bubble.dart';  // ✅ CHANGÉ
 import '../utils/helpers.dart';
 import '../utils/constants.dart';
 
@@ -23,10 +23,59 @@ class MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     // Détecter et afficher les messages vocaux
     if (message.audioUrl != null && message.audioUrl!.isNotEmpty) {
-      return VoiceMessageBubbleSimple(
-        message: message,
-        isMe: isMe,
-        audioService: audioService,
+      return Align(
+        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          child: Column(
+            crossAxisAlignment:
+                isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              // Bulle vocale
+              Container(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.7,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isMe ? AppConstants.primaryColor : Colors.grey[200],
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(16),
+                    topRight: const Radius.circular(16),
+                    bottomLeft: Radius.circular(isMe ? 16 : 4),
+                    bottomRight: Radius.circular(isMe ? 4 : 16),
+                  ),
+                ),
+                child: VoiceMessageBubble(
+                  audioUrl: message.audioUrl!,
+                  isMe: isMe,
+                ),
+              ),
+              const SizedBox(height: 4),
+              // Timestamp
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    Helpers.formatMessageTime(message.timestamp),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  if (isMe) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      message.isRead ? Icons.done_all : Icons.done,
+                      size: 14,
+                      color: message.isRead ? Colors.blue : Colors.grey,
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -142,9 +191,9 @@ class MessageBubble extends StatelessWidget {
               errorWidget: (context, url, error) => Container(
                 height: 200,
                 color: Colors.grey[300],
-                child: Column(
+                child: const Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Icon(Icons.error, size: 40, color: Colors.red),
                     SizedBox(height: 8),
                     Text(

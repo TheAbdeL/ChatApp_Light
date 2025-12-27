@@ -48,6 +48,9 @@ class AuthService {
             .doc(user.uid)
             .set(newUser.toFirestore());
 
+        // ✅ Configurer la présence
+        await setupPresence(user.uid);
+
         debugPrint('✅ Utilisateur créé avec succès: ${user.uid}');
         return null; // Pas d'erreur
       }
@@ -94,6 +97,9 @@ class AuthService {
           'lastSeen': FieldValue.serverTimestamp(),
         });
 
+        // ✅ Configurer la présence
+        await setupPresence(user.uid);
+
         debugPrint('✅ Connexion réussie: ${user.uid}');
         return null; // Pas d'erreur
       }
@@ -117,6 +123,24 @@ class AuthService {
     } catch (e) {
       debugPrint('❌ Erreur inattendue: $e');
       return 'Erreur inattendue lors de la connexion';
+    }
+  }
+
+  /// ✅ NOUVEAU : Configurer la présence en temps réel
+  Future<void> setupPresence(String userId) async {
+    try {
+      // Référence au document utilisateur
+      final userRef = _firestore.collection('users').doc(userId);
+
+      // Marquer comme en ligne
+      await userRef.update({
+        'isOnline': true,
+        'lastSeen': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint('✅ Présence configurée pour $userId');
+    } catch (e) {
+      debugPrint('❌ Erreur configuration présence: $e');
     }
   }
 

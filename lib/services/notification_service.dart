@@ -44,13 +44,20 @@ class NotificationService {
     _playNotificationSound();
     _vibrate();
 
+    // ✅ VIDER toutes les notifications précédentes
+    ScaffoldMessenger.of(context).clearSnackBars();
+
     // Afficher la notification
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: InkWell(
           onTap: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            onTap();
+            // ✅ Fermer IMMÉDIATEMENT la notification
+            ScaffoldMessenger.of(context).removeCurrentSnackBar();
+            // Attendre un peu pour être sûr que c'est fermé
+            Future.delayed(const Duration(milliseconds: 100), () {
+              onTap();
+            });
           },
           borderRadius: BorderRadius.circular(16),
           child: Container(
@@ -178,18 +185,11 @@ class NotificationService {
         backgroundColor: AppConstants.primaryColor,
         duration: const Duration(seconds: 5),
         behavior: SnackBarBehavior.floating,
+        dismissDirection: DismissDirection.horizontal, // ✅ AJOUTÉ : Swipe pour fermer
         margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 8,
-        action: SnackBarAction(
-          label: '',
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
-          textColor: Colors.transparent,
-          disabledTextColor: Colors.transparent,
-        ),
       ),
     );
 
@@ -236,15 +236,15 @@ class NotificationService {
         backgroundColor: backgroundColor ?? const Color(0xFF075E54),
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
+        dismissDirection: DismissDirection.horizontal, // ✅ Swipe pour fermer
         margin: const EdgeInsets.all(16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 
-  /// Libérer les ressources (plus besoin de dispose AudioPlayer)
+  /// Libérer les ressources
   void dispose() {
-    // Rien à libérer maintenant
     debugPrint('✅ NotificationService disposed');
   }
 }
