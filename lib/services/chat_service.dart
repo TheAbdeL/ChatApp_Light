@@ -7,6 +7,7 @@ import '../models/message_model.dart';
 import '../models/chat_model.dart';
 import '../utils/helpers.dart';
 
+
 /// Service de gestion du chat (Compatible Web + Mobile + Vocal)
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -323,8 +324,14 @@ class ChatService {
   }
 
   /// Supprimer un message
-  Future<String?> deleteMessage(String chatId, String messageId) async {
+  Future<String?> deleteMessage({
+    required String senderId,
+    required String receiverId,
+    required String messageId,
+  }) async {
     try {
+      String chatId = Helpers.getChatId(senderId, receiverId);
+
       await _firestore
           .collection('chats')
           .doc(chatId)
@@ -332,11 +339,106 @@ class ChatService {
           .doc(messageId)
           .delete();
 
-      debugPrint('✅ Message supprimé');
+      print('✅ Message supprimé');
       return null;
     } catch (e) {
-      debugPrint('❌ Erreur lors de la suppression: $e');
+      print('❌ Erreur suppression: $e');
       return 'Erreur lors de la suppression';
     }
   }
+
+  /// Modifier un message
+  Future<String?> editMessage({
+    required String senderId,
+    required String receiverId,
+    required String messageId,
+    required String newText,
+  }) async {
+    try {
+      String chatId = Helpers.getChatId(senderId, receiverId);
+
+      await _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .doc(messageId)
+          .update({
+        'text': newText,
+        'isEdited': true,
+        'editedAt': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ Message modifié');
+      return null;
+    } catch (e) {
+      print('❌ Erreur modification: $e');
+      return 'Erreur lors de la modification';
+    }
+  }
+
+  Future<void> updateTypingStatus({
+    required String chatId,
+    required String userId,
+    required bool isTyping,
+  }) async {
+    try {
+      await _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('typing')
+          .doc(userId)
+          .set({
+        'userId': userId,
+        'isTyping': isTyping,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('❌ Erreur mise à jour statut frappe: $e');
+    }
+  }
+
+  /// Écouter le statut de frappe de l'autre utilisateur
+  Stream<bool> getTypingStatus(String chatId, String otherUserId) {
+    return _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('typing')
+        .doc(otherUserId)
+        .snapshots()
+        .map((snapshot) {
+      if (!snapshot.exists) return false;
+
+      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+      bool isTyping = data['isTyping'] ?? false;
+
+      // Vérifier que le timestamp est récent (moins de 5 secondes)
+      Timestamp? timestamp = data['timestamp'];
+      if (timestamp != null) {
+        DateTime typingTime = timestamp.toDate();
+        Duration difference = DateTime.now().difference(typingTime);
+
+        // Si plus de 5 secondes, considérer comme non en train d'écrire
+        if (difference.inSeconds > 5) {
+          return false;
+        }
+      }
+
+      return isTyping;
+    });
+  }
+
+  /// Nettoyer le statut de frappe (quand on quitte le chat)
+  Future<void> clearTypingStatus(String chatId, String userId) async {
+    try {
+      await _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('typing')
+          .doc(userId)
+          .delete();
+    } catch (e) {
+      print('❌ Erreur nettoyage statut frappe: $e');
+    }
+  }
+
 }

@@ -1,4 +1,7 @@
+import 'package:chatapp_light/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'dart:async'; // pour Timer
 import 'dart:io';
 import '../models/message_model.dart';
 import '../services/auth_service.dart';
@@ -6,9 +9,11 @@ import '../services/chat_service.dart';
 import '../services/user_service.dart';
 import '../services/audio_service_simple.dart';
 import '../utils/constants.dart';
+import '../utils/helpers.dart'; // pour Helpers.getChatId()
 import '../widgets/message_bubble.dart';
 import '../widgets/chat_input.dart';
 import '../widgets/user_avatar.dart';
+import '../views/color_settings_page.dart';
 
 /// Page de chat privé (Compatible Web + Mobile + Vocal)
 class ChatPage extends StatefulWidget {
@@ -34,6 +39,8 @@ class _ChatPageState extends State<ChatPage> {
   final AudioServiceSimple _audioService = AudioServiceSimple();
   final ScrollController _scrollController = ScrollController();
 
+  Timer? _typingTimer;
+  bool _isOtherUserTyping = false;
   bool _isOnline = false;
   bool _isSendingImage = false;
 
@@ -42,19 +49,29 @@ class _ChatPageState extends State<ChatPage> {
     super.initState();
     _markMessagesAsRead();
     _listenToUserStatus();
+    _listenToTypingStatus();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     _audioService.dispose();
+    _typingTimer?.cancel();
+
+    // Nettoyer le statut de frappe
+    String? currentUserId = _authService.currentUser?.uid;
+    if (currentUserId != null) {
+      String chatId = Helpers.getChatId(currentUserId, widget.userId);
+      _chatService.clearTypingStatus(chatId, currentUserId);
+    }
+
     super.dispose();
   }
 
   /// Marquer les messages comme lus
   void _markMessagesAsRead() {
     String? currentUserId = _authService.currentUser?.uid;
-    if (currentUserId != null) {  // ✅ AJOUT DE LA VÉRIFICATION
+    if (currentUserId != null) {
       _chatService.markMessagesAsRead(currentUserId, widget.userId);
     }
   }
@@ -70,11 +87,56 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  /// Écouter le statut de frappe de l'autre utilisateur
+  void _listenToTypingStatus() {
+    String? currentUserId = _authService.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    String chatId = Helpers.getChatId(currentUserId, widget.userId);
+
+    _chatService.getTypingStatus(chatId, widget.userId).listen((isTyping) {
+      if (mounted) {
+        setState(() {
+          _isOtherUserTyping = isTyping;
+        });
+      }
+    });
+  }
+
+  /// Notifier qu'on est en train d'écrire
+  void _handleTyping(bool isTyping) {
+    String? currentUserId = _authService.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    String chatId = Helpers.getChatId(currentUserId, widget.userId);
+
+    // Annuler le timer précédent
+    _typingTimer?.cancel();
+
+    // Mettre à jour le statut
+    _chatService.updateTypingStatus(
+      chatId: chatId,
+      userId: currentUserId,
+      isTyping: isTyping,
+    );
+
+    // Si en train d'écrire, créer un timer pour arrêter après 3 secondes
+    if (isTyping) {
+      _typingTimer = Timer(const Duration(seconds: 3), () {
+        _chatService.updateTypingStatus(
+          chatId: chatId,
+          userId: currentUserId,
+          isTyping: false,
+        );
+      });
+    }
+  }
+
   /// Envoyer un message texte
   Future<void> _sendMessage(String text) async {
     String? currentUserId = _authService.currentUser?.uid;
 
-    if (currentUserId == null) {  // ✅ AJOUT DE LA VÉRIFICATION
+    if (currentUserId == null) {
       _showError('Erreur d\'authentification');
       return;
     }
@@ -96,7 +158,7 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _sendImage(dynamic imageFile) async {
     String? currentUserId = _authService.currentUser?.uid;
 
-    if (currentUserId == null) {  // ✅ AJOUT DE LA VÉRIFICATION
+    if (currentUserId == null) {
       _showError('Erreur d\'authentification');
       return;
     }
@@ -134,7 +196,7 @@ class _ChatPageState extends State<ChatPage> {
       imageFile: imageFile,
     );
 
-    if (mounted) {  // ✅ AJOUT DE LA VÉRIFICATION
+    if (mounted) {
       setState(() {
         _isSendingImage = false;
       });
@@ -165,7 +227,7 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _sendVoiceMessage(File audioFile, int duration) async {
     String? currentUserId = _authService.currentUser?.uid;
 
-    if (currentUserId == null) {  // ✅ AJOUT DE LA VÉRIFICATION
+    if (currentUserId == null) {
       _showError('Erreur d\'authentification');
       return;
     }
@@ -204,7 +266,7 @@ class _ChatPageState extends State<ChatPage> {
       duration: duration,
     );
 
-    if (mounted) {  // ✅ AJOUT DE LA VÉRIFICATION
+    if (mounted) {
       setState(() {
         _isSendingImage = false;
       });
@@ -258,16 +320,20 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     String? currentUserId = _authService.currentUser?.uid;
 
-    if (currentUserId == null) {  // ✅ AJOUT DE LA VÉRIFICATION
+    if (currentUserId == null) {
       return const Scaffold(
         body: Center(child: Text('Erreur d\'authentification')),
       );
     }
 
+    final primaryColor = Theme.of(context).primaryColor;
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppConstants.backgroundColor,
+      backgroundColor: isDarkMode ? const Color(0xF31A1A1A) : const Color(0xFFFFF5F0),
+
       appBar: AppBar(
-        backgroundColor: AppConstants.appBarColor,
+        backgroundColor: primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Row(
           children: [
@@ -296,7 +362,9 @@ class _ChatPageState extends State<ChatPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    _isOnline ? 'En ligne' : 'Hors ligne',
+                    _isOtherUserTyping
+                        ? 'en train d\'écrire...'
+                        : (_isOnline ? 'En ligne' : 'Hors ligne'),
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
@@ -311,8 +379,12 @@ class _ChatPageState extends State<ChatPage> {
           IconButton(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             onPressed: () {
-              // TODO: Menu d'options
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ColorSettingsPage()),
+              );
             },
+            tooltip: 'Couleurs',
           ),
         ],
       ),
@@ -386,6 +458,8 @@ class _ChatPageState extends State<ChatPage> {
                       message: message,
                       isMe: isMe,
                       audioService: _audioService,
+                      onDelete: isMe ? (messageId) => _deleteMessage(messageId) : null,
+                      onEdit: isMe ? (messageId, newText) => _editMessage(messageId, newText) : null,
                     );
                   },
                 );
@@ -416,9 +490,52 @@ class _ChatPageState extends State<ChatPage> {
             onSendMessage: _sendMessage,
             onSendImage: _sendImage,
             onSendVoice: _sendVoiceMessage,
+            onTypingChanged: _handleTyping,
           ),
         ],
       ),
     );
   }
+
+  Future<void> _deleteMessage(String messageId) async {
+    String? currentUserId = _authService.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    String? error = await _chatService.deleteMessage(
+      senderId: currentUserId,
+      receiverId: widget.userId,
+      messageId: messageId,
+    );
+
+    if (error != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _editMessage(String messageId, String newText) async {
+    String? currentUserId = _authService.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    String? error = await _chatService.editMessage(
+      senderId: currentUserId,
+      receiverId: widget.userId,
+      messageId: messageId,
+      newText: newText,
+    );
+
+    if (error != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
 }

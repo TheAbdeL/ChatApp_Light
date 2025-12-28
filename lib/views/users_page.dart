@@ -15,7 +15,7 @@ import 'groups_page.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 
-/// Page principale avec Tabs (Chats / Groupes) - VERSION AMÉLIORÉE
+/// Page principale avec navigation en bas (Chats / Groupes)
 class UsersPage extends StatefulWidget {
   const UsersPage({super.key});
 
@@ -23,32 +23,30 @@ class UsersPage extends StatefulWidget {
   State<UsersPage> createState() => _UsersPageState();
 }
 
-class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMixin {
+class _UsersPageState extends State<UsersPage> {
   final AuthService _authService = AuthService();
   final UserService _userService = UserService();
   final ChatService _chatService = ChatService();
   final TextEditingController _searchController = TextEditingController();
 
-  late TabController _tabController;
+  int _selectedIndex = 0; // 0 = Chats, 1 = Groupes
 
   String _searchQuery = '';
   UserModel? _currentUser;
   bool _isLoading = true;
-  String? _activeChatUserId; // ✅ NOUVEAU : Track le chat actif
+  String? _activeChatUserId;
 
   final Set<String> _notifiedMessages = {};
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _loadCurrentUser();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _tabController.dispose();
     super.dispose();
   }
 
@@ -84,7 +82,7 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
     _chatService.getUserChats(currentUserId).listen((chats) {
       for (var chat in chats) {
         final otherId = chat.participants.firstWhere(
-          (id) => id != currentUserId,
+              (id) => id != currentUserId,
           orElse: () => '',
         );
 
@@ -107,14 +105,13 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
 
             final senderId = lastMessage.senderId;
 
-            // ✅ Ne pas notifier si on est dans le chat avec cette personne
             if (senderId.isNotEmpty && senderId != _activeChatUserId) {
               _userService.getUserById(senderId).then((sender) {
                 if (sender != null && mounted) {
                   final messageText =
-                      lastMessage.text.isEmpty && lastMessage.imageUrl != null
-                          ? '📷 Image'
-                          : lastMessage.text;
+                  lastMessage.text.isEmpty && lastMessage.imageUrl != null
+                      ? '📷 Image'
+                      : lastMessage.text;
 
                   NotificationService().showMessageNotification(
                     context,
@@ -196,14 +193,13 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginPage()),
-        (route) => false,
+            (route) => false,
       );
     }
   }
 
   /// Naviguer vers la page de chat
   void _navigateToChat(UserModel otherUser) async {
-    // ✅ Marquer le chat comme actif
     setState(() {
       _activeChatUserId = otherUser.uid;
     });
@@ -219,7 +215,6 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
       ),
     );
 
-    // ✅ Retirer le marqueur quand on quitte le chat
     if (mounted) {
       setState(() {
         _activeChatUserId = null;
@@ -287,12 +282,8 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFFFF5F0),
       appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: AppConstants.appBarGradient,
-          ),
-        ),
         elevation: 0,
+        titleSpacing: 16,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -310,6 +301,7 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
             ),
           ],
         ),
+        centerTitle: false,
         actions: [
           // Bouton Profil
           IconButton(
@@ -364,35 +356,58 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
           ),
           const SizedBox(width: 8),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
-          tabs: const [
-            Tab(icon: Icon(Icons.chat_rounded), text: 'Chats'),
-            Tab(icon: Icon(Icons.groups_rounded), text: 'Groupes'),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: IndexedStack(
+        index: _selectedIndex,
         children: [
           _buildChatsTab(isDark),
           const GroupsPage(),
         ],
       ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedItemColor: AppConstants.primaryColor,
+          unselectedItemColor: isDark ? Colors.white54 : Colors.grey,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          type: BottomNavigationBarType.fixed,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat_rounded),
+              label: 'Chats',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.groups_rounded),
+              label: 'Groupes',
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  /// Tab des chats privés AMÉLIORÉ
+  /// Tab des chats privés
   Widget _buildChatsTab(bool isDark) {
     return Column(
       children: [
-        // Barre de recherche améliorée
+        // Barre de recherche
         Container(
           color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -422,19 +437,19 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
                 ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: Icon(
-                          Icons.clear_rounded,
-                          color: isDark ? Colors.white70 : Colors.black54,
-                        ),
-                        onPressed: () {
-                          if (mounted) {
-                            setState(() {
-                              _searchController.clear();
-                              _searchQuery = '';
-                            });
-                          }
-                        },
-                      )
+                  icon: Icon(
+                    Icons.clear_rounded,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                  onPressed: () {
+                    if (mounted) {
+                      setState(() {
+                        _searchController.clear();
+                        _searchQuery = '';
+                      });
+                    }
+                  },
+                )
                     : null,
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
@@ -453,7 +468,7 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
           ),
         ),
 
-        // Liste des utilisateurs avec animations
+        // Liste des utilisateurs
         Expanded(
           child: StreamBuilder<List<UserModel>>(
             stream: _searchQuery.isEmpty
@@ -560,10 +575,9 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
               return ListView.builder(
                 physics: const BouncingScrollPhysics(),
                 itemCount: users.length,
-                padding: const EdgeInsets.only(top: 8, bottom: 80),
+                padding: const EdgeInsets.only(top: 8, bottom: 16),
                 itemBuilder: (context, index) {
                   UserModel user = users[index];
-                  // ✨ Animation au scroll
                   return TweenAnimationBuilder(
                     duration: Duration(milliseconds: 200 + (index * 30)),
                     tween: Tween<double>(begin: 0, end: 1),
@@ -587,7 +601,7 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
     );
   }
 
-  /// ✨ AMÉLIORÉ : Tuile utilisateur avec design moderne
+  /// Tuile utilisateur avec design moderne
   Widget _buildUserTile(UserModel user, bool isDark) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -632,8 +646,8 @@ class _UsersPageState extends State<UsersPage> with SingleTickerProviderStateMix
                         shape: BoxShape.circle,
                         gradient: (user.isOnline ?? false)
                             ? const LinearGradient(
-                                colors: [Colors.green, Colors.lightGreen],
-                              )
+                          colors: [Colors.green, Colors.lightGreen],
+                        )
                             : null,
                         boxShadow: [
                           if (user.isOnline ?? false)

@@ -7,10 +7,12 @@ class MessageModel {
   final String receiverId;
   final String text;
   final String? imageUrl;
-  final String? audioUrl;      // ✅ NOUVEAU - URL du message vocal
-  final int? audioDuration;    // ✅ NOUVEAU - Durée en secondes
+  final String? audioUrl;
+  final int? audioDuration;
   final DateTime timestamp;
   final bool isRead;
+  final bool isEdited;
+  final DateTime? editedAt;
 
   MessageModel({
     required this.id,
@@ -22,6 +24,8 @@ class MessageModel {
     this.audioDuration,
     required this.timestamp,
     this.isRead = false,
+    this.isEdited = false,
+    this.editedAt,
   });
 
   /// Créer un MessageModel depuis un document Firestore
@@ -34,10 +38,12 @@ class MessageModel {
       receiverId: data['receiverId'] ?? '',
       text: data['text'] ?? '',
       imageUrl: data['imageUrl'],
-      audioUrl: data['audioUrl'],           // ✅ NOUVEAU
-      audioDuration: data['audioDuration'], // ✅ NOUVEAU
+      audioUrl: data['audioUrl'],
+      audioDuration: data['audioDuration'],
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isRead: data['isRead'] ?? false,
+      isEdited: data['isEdited'] ?? false,
+      editedAt: (data['editedAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -48,10 +54,12 @@ class MessageModel {
       'receiverId': receiverId,
       'text': text,
       'imageUrl': imageUrl,
-      'audioUrl': audioUrl,           // ✅ NOUVEAU
-      'audioDuration': audioDuration, // ✅ NOUVEAU
+      'audioUrl': audioUrl,
+      'audioDuration': audioDuration,
       'timestamp': Timestamp.fromDate(timestamp),
       'isRead': isRead,
+      'isEdited': isEdited,
+      if (editedAt != null) 'editedAt' : Timestamp.fromDate(editedAt!),
     };
   }
 
@@ -66,6 +74,8 @@ class MessageModel {
     int? audioDuration,
     DateTime? timestamp,
     bool? isRead,
+    bool? isEdited,
+    DateTime? editedAt,
   }) {
     return MessageModel(
       id: id ?? this.id,
@@ -77,6 +87,8 @@ class MessageModel {
       audioDuration: audioDuration ?? this.audioDuration,
       timestamp: timestamp ?? this.timestamp,
       isRead: isRead ?? this.isRead,
+      isEdited: isEdited ?? this.isEdited,
+      editedAt: editedAt ?? this.editedAt,
     );
   }
 

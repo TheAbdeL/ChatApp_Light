@@ -268,6 +268,10 @@ class _GroupChatPageState extends State<GroupChatPage> {
             onSendMessage: _sendMessage,
             onSendImage: _sendImage,  // ✅ FONCTIONNE MAINTENANT
             onSendVoice: _sendVoice,
+            onTypingChanged: (isTyping) {
+              // Gérer le typing indicator pour les groupes si nécessaire
+              // Sinon laisser vide
+            },
           ),
         ],
       ),

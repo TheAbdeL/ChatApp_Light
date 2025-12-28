@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
+import 'dart:async'; // pour Timer
 import '../utils/constants.dart';
 import '../services/storage_service.dart';
 import '../widgets/voice_recorder_widget.dart';
-/// Widget pour le champ de saisie du chat (Image + Vocal)
+
+/// Widget pour le champ de saisie du chat (Image + Vocal + Typing Indicator)
 class ChatInput extends StatefulWidget {
   final Function(String) onSendMessage;
   final Function(dynamic) onSendImage;
-  final Function(File, int)? onSendVoice;  // ✅ NOUVEAU - Paramètre optionnel
+  final Function(File, int)? onSendVoice;
+  final Function(bool) onTypingChanged; // Typing indicator
 
   const ChatInput({
     super.key,
     required this.onSendMessage,
     required this.onSendImage,
-    this.onSendVoice,  // Optionnel pour ne pas casser le code existant
+    this.onSendVoice,
+    required this.onTypingChanged,
   });
 
   @override
@@ -26,11 +30,13 @@ class _ChatInputState extends State<ChatInput> {
   final StorageService _storageService = StorageService();
   bool _isTyping = false;
   bool _isUploading = false;
-  bool _showVoiceRecorder = false;  // ✅ NOUVEAU - État enregistreur vocal
+  bool _showVoiceRecorder = false;
+  Timer? _typingDebounce;
 
   @override
   void dispose() {
     _controller.dispose();
+    _typingDebounce?.cancel();
     super.dispose();
   }
 
@@ -42,11 +48,14 @@ class _ChatInputState extends State<ChatInput> {
       setState(() {
         _isTyping = false;
       });
+      widget.onTypingChanged(false); // Notifier que l'utilisateur a arrêté de taper
     }
   }
 
   /// Afficher le sélecteur d'image (Galerie ou Caméra)
   Future<void> _showImageSourceDialog() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     // Ne pas afficher si on est sur Web (problème CORS déjà discuté)
     if (kIsWeb) {
       _pickImage(fromGallery: true);
@@ -55,6 +64,7 @@ class _ChatInputState extends State<ChatInput> {
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -64,11 +74,12 @@ class _ChatInputState extends State<ChatInput> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'Choisir une image',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
               const SizedBox(height: 20),
@@ -76,7 +87,12 @@ class _ChatInputState extends State<ChatInput> {
               // Galerie
               ListTile(
                 leading: const Icon(Icons.photo_library, color: Colors.blue),
-                title: const Text('Galerie'),
+                title: Text(
+                  'Galerie',
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _pickImage(fromGallery: true);
@@ -86,7 +102,12 @@ class _ChatInputState extends State<ChatInput> {
               // Caméra
               ListTile(
                 leading: const Icon(Icons.camera_alt, color: Colors.green),
-                title: const Text('Appareil photo'),
+                title: Text(
+                  'Appareil photo',
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _pickImage(fromGallery: false);
@@ -107,7 +128,7 @@ class _ChatInputState extends State<ChatInput> {
       setState(() => _isUploading = true);
 
       dynamic imageFile;
-      
+
       if (kIsWeb) {
         // Sur Web, utiliser directement image_picker
         imageFile = await _storageService.pickImageFromGallery(
@@ -136,7 +157,7 @@ class _ChatInputState extends State<ChatInput> {
         // Vérifier la taille du fichier (max 5MB) - seulement sur Mobile
         if (!kIsWeb && imageFile is File) {
           bool isTooLarge = await _storageService.isFileTooLarge(imageFile);
-          
+
           if (isTooLarge) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -154,12 +175,12 @@ class _ChatInputState extends State<ChatInput> {
         // Envoyer l'image
         widget.onSendImage(imageFile);
       }
-      
+
       setState(() => _isUploading = false);
     } catch (e) {
       debugPrint('❌ Erreur lors de la sélection de l\'image: $e');
       setState(() => _isUploading = false);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -173,7 +194,9 @@ class _ChatInputState extends State<ChatInput> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ NOUVEAU - Afficher l'enregistreur vocal si activé
+    final primaryColor = Theme.of(context).primaryColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (_showVoiceRecorder) {
       return VoiceRecorderWidget(
         onAudioRecorded: (audioPath, duration) {
@@ -192,10 +215,10 @@ class _ChatInputState extends State<ChatInput> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.2),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, -1),
@@ -208,11 +231,14 @@ class _ChatInputState extends State<ChatInput> {
           IconButton(
             icon: _isUploading
                 ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(Icons.image, color: AppConstants.primaryColor),
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+                : Icon(
+              Icons.image,
+              color: isDark ? Colors.white70 : primaryColor,
+            ),
             onPressed: _isUploading ? null : _showImageSourceDialog,
             tooltip: 'Envoyer une image',
           ),
@@ -222,21 +248,36 @@ class _ChatInputState extends State<ChatInput> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: isDark ? const Color(0xFF2C2C2C) : Colors.grey[100],
                 borderRadius: BorderRadius.circular(24),
               ),
               child: TextField(
                 controller: _controller,
-                decoration: const InputDecoration(
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black,
+                  fontSize: 16,
+                ),
+                decoration: InputDecoration(
                   hintText: 'Message...',
+                  hintStyle: TextStyle(
+                    color: isDark ? Colors.white54 : Colors.grey[600],
+                  ),
                   border: InputBorder.none,
                 ),
                 maxLines: null,
                 textCapitalization: TextCapitalization.sentences,
                 enabled: !_isUploading,
                 onChanged: (value) {
+                  final isCurrentlyTyping = value.trim().isNotEmpty;
+
                   setState(() {
-                    _isTyping = value.trim().isNotEmpty;
+                    _isTyping = isCurrentlyTyping;
+                  });
+
+                  // Debounce pour éviter trop d'appels
+                  _typingDebounce?.cancel();
+                  _typingDebounce = Timer(const Duration(milliseconds: 300), () {
+                    widget.onTypingChanged(isCurrentlyTyping);
                   });
                 },
                 onSubmitted: (_) => _sendMessage(),
@@ -244,15 +285,18 @@ class _ChatInputState extends State<ChatInput> {
             ),
           ),
 
-          // ✅ NOUVEAU - Bouton microphone (affiché si pas de texte ET vocal activé)
+          // Bouton microphone (affiché si pas de texte ET vocal activé)
           if (!_isTyping && !kIsWeb && widget.onSendVoice != null)
             IconButton(
-              icon: Icon(Icons.mic, color: AppConstants.primaryColor),
-              onPressed: _isUploading 
-                  ? null 
+              icon: Icon(
+                Icons.mic,
+                color: isDark ? Colors.white70 : AppConstants.primaryColor,
+              ),
+              onPressed: _isUploading
+                  ? null
                   : () {
-                      setState(() => _showVoiceRecorder = true);
-                    },
+                setState(() => _showVoiceRecorder = true);
+              },
               tooltip: 'Message vocal',
             ),
 
@@ -262,7 +306,7 @@ class _ChatInputState extends State<ChatInput> {
               margin: const EdgeInsets.only(left: 8),
               decoration: BoxDecoration(
                 color: !_isUploading
-                    ? AppConstants.primaryColor
+                    ? primaryColor
                     : Colors.grey[300],
                 shape: BoxShape.circle,
               ),
