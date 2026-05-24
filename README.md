@@ -4,87 +4,40 @@ Application mobile de messagerie instantanée simple et légère, permettant à 
 
 ---
 
+
 ## 📱 Aperçu de l'application
 
-### Écran de connexion
+### Connexion & Inscription
 
-L'utilisateur s'authentifie via email et mot de passe grâce à Firebase Authentication.
+L'écran de connexion adopte un design épuré centré sur la marque — logo orange, champs email/mot de passe et lien vers l'inscription. Sur mobile, l'écran d'inscription permet également d'ajouter une photo de profil optionnelle dès la création du compte.
 
-```
-┌─────────────────────┐
-│                     │
-│     [💬]            │
-│   ChatApp Light     │
-│  Sign in to continue│
-│                     │
-│  Email              │
-│  ┌─────────────────┐│
-│  │ you@example.com ││
-│  └─────────────────┘│
-│  Password           │
-│  ┌─────────────────┐│
-│  │ ••••••••••••••  ││
-│  └─────────────────┘│
-│                     │
-│  ┌─────────────────┐│
-│  │    Sign in      ││
-│  └─────────────────┘│
-│   Create an account │
-└─────────────────────┘
-```
+| Web / Desktop | Mobile |
+|:---:|:---:|
+| ![Login desktop](assets/screenshots/Login_desk.jpeg) | ![Inscription mobile](assets/screenshots/Login_mobile.jpeg) |
+| Connexion — version web | Création de compte — version mobile |
+
+---
 
 ### Liste des conversations
 
-Affiche toutes les conversations triées par date du dernier message, avec aperçu du contenu et badge de messages non lus.
+La vue principale affiche tous les utilisateurs avec leur statut de présence en temps réel (en ligne / vu il y a X min). Sur desktop, une barre de recherche permet de filtrer rapidement. Sur mobile, une navigation par onglets sépare les **Chats** individuels des **Groupes**, avec un indicateur visuel vert pour les contacts en ligne.
 
-```
-┌─────────────────────┐
-│ Messages       [✏️]  │
-│ [🔍 Search...      ]│
-├─────────────────────┤
-│ [AK] Amine K.  10:24│
-│      Salam, c'est.. │●2│
-├─────────────────────┤
-│ [SR] Sara R.   09:05│
-│      Merci pour le. │
-├─────────────────────┤
-│ [YB] Youssef B. Hier│
-│      On se retrouv. │●1│
-├─────────────────────┤
-│ [NM] Nour M.    Lun │
-│      Vu, bonne soirée│
-└─────────────────────┘
-```
+| Web / Desktop | Mobile |
+|:---:|:---:|
+| ![Conversations desktop](assets/screenshots/convers_list_desk.jpeg) | ![Conversations mobile](assets/screenshots/convers_list_mobile.jpeg) |
+| Liste des discussions — version web | Chats & Groupes — version mobile |
+
+---
 
 ### Écran de chat
 
-Interface de discussion en temps réel. Messages sortants à droite (bleu), messages entrants à gauche (blanc).
+L'interface de chat affiche les messages sortants en bulles orange (à droite) et les messages entrants en fond clair (à gauche), avec horodatage et indicateur de lecture (✓✓). Le partage d'images est intégré nativement. Une bannière de notification apparaît en bas lors de la réception d'un nouveau message pendant la conversation.
 
-```
-┌─────────────────────┐
-│ [←][AK] Amine K. [⋮]│
-├─────────────────────┤
-│ ┌──────────────┐    │
-│ │Salam ! C'est │    │
-│ │bon demain ?  │    │
-│ └──────────────┘    │
-│                10:22│
-│              ┌─────┐│
-│              │Oui, ││
-│              │14h! ││
-│              └─────┘│
-│                10:23│
-│ ┌──────────────┐    │
-│ │Super, salle B│    │
-│ │👍            │    │
-│ └──────────────┘    │
-│                10:24│
-├─────────────────────┤
-│[📎] [Message…]  [➤] │
-└─────────────────────┘
-```
+| Web / Desktop | Mobile |
+|:---:|:---:|
+| ![Chat desktop](assets/screenshots/chat_desk.jpeg) | ![Chat mobile](assets/screenshots/chat_mobile.jpeg) |
+| Conversation — version web | Conversation avec partage d'image — version mobile |
 
----
 
 ## 🚀 Fonctionnalités
 
